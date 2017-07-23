@@ -4,6 +4,7 @@ global _start
 _start:
   push rbp
   mov rbp, rsp
+  sub rsp, 0xa0 
 
   ; print out greeting
   mov rax, 1
@@ -19,20 +20,60 @@ _start:
 
   ; get file name from argv[1]
   mov rsi, [rbp+24]
-
-  mov rax, 1
   call strlen
+  mov r8, rdx
+  add r8, rsi
+  mov byte [r8], 0xa                ; add a new line to end of user input
+  add rdx, 1
+
+  ; print filename
+  mov rax, 1
   syscall
 
+  mov byte [rsi + rdx - 1], 0       ; null terminate the filename
 
+  ; open file
+  mov rax, 2                        ; sys_open
+  mov rdi, rsi                      ; file name
+  xor rsi, rsi                      ; O_RDONLY
+  syscall
 
-  ; exit gracefully
+  cmp rax, -1
+  jle no_file
+  mov [rbp-8], rax                  ; save fd
+
+  ; get length of input file
+  mov rdi, rax                      ; fd to check
+  mov rax, 5                        ; sys_fstat
+  lea rsi, [rbp - 0xa0]             ; address to write struct
+  syscall
+
+  mov rbx, [rbp - 0x70]             ; rbx = size of file
+
+  ; get heap address
+  mov rax, 12                       ; sys_brk
+  mov rdi, 0                        ; invalid addr
+  syscall
+
+  ; request more heap space
+  add rax, rbx                      ; add size of file to heap addr
+  mov rax, 12                       ; sys_brk
+  syscall
+
+  mov rsi, rax
+  sub rsi, rbx                      ; write file on the heap
+  mov rax, 0                        ; sys_read
+  mov rdi, [rbp-8]                  ; fd
+  mov rdx, rbx                      ; read file length
+  syscall
+
+  ; exit(0)
   mov eax, 60
   xor rdi, rdi
   syscall
 
 
-strlen: ; rsi -> rdx
+strlen:                             ; rsi -> rdx
   push rbp
   mov rbp, rsp
   lea rdx, [rsi - 1]
@@ -56,13 +97,24 @@ bad_argc:
   mov rdi, 1
   syscall
 
+no_file:
+  mov rax, 1
+  mov rdi, 1
+  mov rsi, bfn_msg
+  mov rdx, bfn_len
+  syscall
+
+  mov eax, 60
+  mov rdi, 2
+  syscall
 
 section .data
   msg           db 'fap swag', 0xa
   len           equ $ - msg
   badargc       db 'invalid number of arguments', 0xa
   badargclen    equ $ - badargc
-
+  bfn_msg       db 'bad filename', 0xa
+  bfn_len       equ $ - bfn_msg
   K             dd 0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee
                 dd 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501
                 dd 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be

@@ -49,6 +49,15 @@ _start:
   syscall
 
   mov rbx, [rbp - 0x70]             ; rbx = size of file
+  mov r8, rbx
+
+  ; calculate how much padding we need
+  xor edx, edx
+  mov rax, rbx
+  mov rcx, 512
+  div rcx                           ; rdx = size of file % 512
+  sub rcx, rdx                      ; rcx = amount of padding
+  add rbx, rcx                      ; rbx = amount of heap to allocate
 
   ; get heap address
   mov rax, 12                       ; sys_brk
@@ -56,16 +65,28 @@ _start:
   syscall
 
   ; request more heap space
-  add rax, rbx                      ; add size of file to heap addr
+  add rax, rbx                      ; request file length + padding
+  mov rdi, rax
   mov rax, 12                       ; sys_brk
   syscall
 
+  ; write file contents to heap
   mov rsi, rax
   sub rsi, rbx                      ; write file on the heap
   mov rax, 0                        ; sys_read
   mov rdi, [rbp-8]                  ; fd
-  mov rdx, rbx                      ; read file length
+  mov rdx, r8                       ; read file length
   syscall
+
+  ; pad message with 0's
+  mov rcx, rbx
+set_zero:
+  mov byte [rcx + rsi], 0
+  cmp rcx, rbx
+  loope set_zero
+
+  ; add 1 to the pad
+  mov byte [r8 + rsi], 1
 
   ; exit(0)
   mov eax, 60
@@ -131,3 +152,8 @@ section .data
                 dd 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1
                 dd 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1
                 dd 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
+; per-round shift amounts
+  s             db 7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22
+                db 5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20
+                db 4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23
+                db 6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21

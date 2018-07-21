@@ -6,12 +6,12 @@ _start:
   mov rbp, rsp
   sub rsp, 0xa0 
 
-  ; print out greeting
-  mov rax, 1
-  mov rdi, 1
-  mov rsi, msg
-  mov rdx, len
-  syscall
+  ; ; print out greeting
+  ; mov rax, 1
+  ; mov rdi, 1
+  ; mov rsi, msg
+  ; mov rdx, len
+  ; syscall
 
   ; check argc
   mov r8, [rbp+8]
@@ -26,9 +26,9 @@ _start:
   mov byte [r8], 0xa                ; add a new line to end of user input
   add rdx, 1
 
-  ; print filename
-  mov rax, 1
-  syscall
+  ; ; print filename
+  ; mov rax, 1
+  ; syscall
 
   mov byte [rsi + rdx - 1], 0       ; null terminate the filename
 
@@ -86,7 +86,17 @@ set_zero:
   loope set_zero
 
   ; add 1 to the pad
-  mov byte [r8 + rsi], 1
+  mov byte [r8 + rsi], 0x80
+
+  ; add the original length to pad
+  shl r8, 3
+  mov qword [rsi + rbx - 8], r8
+
+  ; print out message
+  mov rax, 1
+  mov rdi, 1
+  mov rdx, rbx
+  syscall
 
   ; exit(0)
   mov eax, 60

@@ -1,6 +1,5 @@
-
 all: md5.asm
-	nasm -felf64 md5.asm
+	nasm -felf64 -g md5.asm
 	ld md5.o -o md5
 
 clean:

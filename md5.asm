@@ -92,21 +92,27 @@ set_zero:
   shl r8, 3
   mov qword [rsi + rbx - 8], r8
 
+  ; print out message
+  mov rax, 1
+  mov rdi, 1
+  mov rdx, rbx
+  syscall
+
   ; set up IV
 
-  mov r12d, 0x67452301
-  mov r13d, 0xefcdab89
-  mov r14d, 0x98badcfe
-  mov r15d, 0x10325476
+  mov r12d, 0x67452301  ; a0
+  mov r13d, 0xefcdab89  ; b0
+  mov r14d, 0x98badcfe  ; c0
+  mov r15d, 0x10325476  ; d0
 
   ; TODO: turn this into a loop for messages > 512 bytes
-  mov r8d, r12d
-  mov r9d, r13d
-  mov r10d, r14d
-  mov r11d, r15d
+  mov r8d, r12d   ; A
+  mov r9d, r13d   ; B
+  mov r10d, r14d  ; C
+  mov r11d, r15d  ; D
 
-  xor ecx, ecx
-
+  xor rcx, rcx
+  xor rbx, rbx
 main_loop:
   cmp ecx, 48
   jge I48_63
@@ -116,17 +122,15 @@ main_loop:
   jge I16_31
 
 I1_15:
+  ; F
+  mov eax, r11d
+  xor eax, r10d
+  and eax, r9d
+  xor eax, r11d
+
   ; G
   mov ebx, ecx
   jmp prolog
-
-  ; F
-  mov eax, r9d
-  and eax, r10d
-  mov ebx, r9d
-  xor ebx, 0xFFFFFFFF
-  and ebx, r11d
-  or eax, ebx
 I16_31:
   ; G
   mov eax, ecx
@@ -139,12 +143,11 @@ I16_31:
   mov ebx, edx
 
   ; F
-  mov eax, r11d
-  and eax, r9d
-  mov edx, r11d
-  xor edx, 0xFFFFFFFF
-  and edx, r10d
-  or eax, edx
+  mov eax, r10d
+  xor eax, r9d
+  and eax, r11d
+  xor eax, r10d
+
   jmp prolog
 I32_47:
   ; G
@@ -179,38 +182,42 @@ I48_63:
   xor eax, r10d
 
 prolog:
+  ; F = F + A + K[i] + M[g]
+
+  ; F += M[g]
   shl ebx, 5
-  mov ebx, dword [esi + ebx]
+  mov ebx, dword [rsi + rbx]
   add eax, ebx
+
+  ; F += A
   add eax, r8d
+
+  ;F += K[i]
+  mov edx, ecx
+  shl ecx, 2
   add eax, dword [ecx + K]
 
   mov r8d, r11d
   mov r11d, r10d
   mov r10d, r9d
 
-  mov edx, ecx
-  mov cl, byte [s + ecx]
+  mov cl, byte [s + edx]
   rol eax, cl
   add r9d, eax
 
   mov ecx, edx
+  ; int 3
   inc ecx
   cmp ecx, 63
-  jne main_loop
+  jle main_loop
 
   add r12d, r8d
   add r13d, r9d
   add r14d, r10d
   add r15d, r11d
 
-  db 0xcc
-  ; print out message
-  mov rax, 1
-  mov rdi, 1
-  mov rdx, rbx
-  syscall
 
+  int 3
   ; exit(0)
   mov eax, 60
   xor rdi, rdi

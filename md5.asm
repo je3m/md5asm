@@ -1,7 +1,7 @@
 section .text
-global _start
+global md5asm
 
-_start:
+md5asm:
   push rbp
   mov rbp, rsp
   sub rsp, 0xa0 
@@ -14,19 +14,18 @@ _start:
   ; syscall
 
   ; check argc
-  mov r8, [rbp+8]
-  cmp r8, 2
+  cmp rdi, 2
   jne bad_argc
 
   ; get file name from argv[1]
-  mov rsi, [rbp+24]
+  ; mov rsi, [rsi+4]
   call strlen
   mov r8, rdx
   add r8, rsi
   mov byte [r8], 0xa                ; add a new line to end of user input
   add rdx, 1
 
-  ; ; print filename
+  ; print filename
   ; mov rax, 1
   ; syscall
 
@@ -77,7 +76,6 @@ _start:
   mov rdi, [rbp-8]                  ; fd
   mov rdx, r8                       ; read file length
   syscall
-
   ; pad message with 0's
   mov rcx, rbx
 set_zero:
@@ -92,11 +90,12 @@ set_zero:
   shl r8, 3
   mov qword [rsi + rbx - 8], r8
 
+  ; int 3
   ; print out message
-  mov rax, 1
-  mov rdi, 1
-  mov rdx, rbx
-  syscall
+  ; mov rax, 1
+  ; mov rdi, 1
+  ; mov rdx, rbx
+  ; syscall
 
   ; set up IV
 
@@ -206,7 +205,6 @@ prolog:
   add r9d, eax
 
   mov ecx, edx
-  ; int 3
   inc ecx
   cmp ecx, 63
   jle main_loop
@@ -216,8 +214,17 @@ prolog:
   add r14d, r10d
   add r15d, r11d
 
+  mov dword [rsi - 0x0], r15d
+  mov dword [rsi - 0x4], r14d
+  mov dword [rsi - 0x8], r13d
+  mov dword [rsi - 0xc], r12d
 
-  int 3
+  lea rax, [rsi - 0xc]
+
+  ; add rsp, 0xa0
+  leave
+  ret
+
   ; exit(0)
   mov eax, 60
   xor rdi, rdi

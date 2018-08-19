@@ -54,8 +54,8 @@ _start:
   ; calculate how much padding we need
   xor edx, edx
   mov rax, rbx
-  mov rcx, 512
-  div rcx                           ; rdx = size of file % 512
+  mov rcx, 64
+  div rcx                           ; rdx = size of file % 64 bytes (512 bits)
   sub rcx, rdx                      ; rcx = amount of padding
   add rbx, rcx                      ; rbx = amount of heap to allocate
 
@@ -185,7 +185,7 @@ prolog:
   ; F = F + A + K[i] + M[g]
 
   ; F += M[g]
-  shl ebx, 5
+  shl ebx, 2
   mov ebx, dword [rsi + rbx]
   add eax, ebx
 

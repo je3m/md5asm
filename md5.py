@@ -1,4 +1,4 @@
-#!/usr/bin python3
+#!/usr/bin/env python3
 import struct
 import array
 
@@ -6,7 +6,7 @@ def leftrotate (x, c):
     return (x << c) | (x >> (32-c));
 
 # Note: All variables are unsigned 32 bit and wrap modulo 2^32 when calculating
-message = 'a'
+message = 'abcdefgh'
 # s specifies the per-round shift amounts
 s = []
 s[ 0:15] = [7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22]
@@ -42,7 +42,7 @@ d0 = 0x10325476   # D
 
 #  Notice: the input bytes are considered as bits strings,
 #   where the first bit is the most significant bit of the byte.[48]
-message = bytes([0x61]) + bytes([0x80]) + bytes([0x00])*54 + (bytes([0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
+message = bytes(message, 'ascii') + bytes([0x80]) + bytes([0x00])*(55-len(message)) + (bytes([0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
 # Pre-processing: padding with zeros
 # append "0" bit until message length in bits ≡ 448 (mod 512)
 # append original length in bits mod 264 to message
